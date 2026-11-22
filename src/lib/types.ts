@@ -18,15 +18,22 @@ export interface Usuario {
   rol: Rol;
 }
 
+export type Ambito = "comun" | "cliente";
+
 export interface Categoria {
   slug: string;
   nombre: string;
+  /** comun: Comun/<Marca>/... · cliente: Clientes/<Cliente>/... */
+  ambito: Ambito;
   orden: number;
 }
 
 export interface Material {
   id: string;
-  marcaId: string;
+  /** Obligatoria en material común; opcional en la carpeta de un cliente. */
+  marcaId: string | null;
+  /** Solo en la carpeta de un cliente: el único distribuidor que lo ve. */
+  distribuidorId: string | null;
   categoria: string;
   titulo: string;
   rutaArchivo: string;

@@ -12,22 +12,40 @@ export const marcas: Marca[] = [
 ];
 
 export const categorias: Categoria[] = [
-  { slug: "presentacion", nombre: "Presentación", orden: 1 },
-  { slug: "lista-de-precios", nombre: "Lista de precios", orden: 2 },
-  { slug: "fotos-del-producto", nombre: "Fotos del producto", orden: 3 },
-  { slug: "logotipos", nombre: "Logotipos", orden: 4 },
-  { slug: "videos-de-presentacion", nombre: "Vídeos de presentación", orden: 5 },
-  { slug: "material-plv", nombre: "Material PLV", orden: 6 },
-  { slug: "business-plan", nombre: "Business Plan", orden: 7 },
-  { slug: "forecast", nombre: "Forecast", orden: 8 },
+  { slug: "presentacion", nombre: "Presentación", ambito: "comun", orden: 1 },
+  { slug: "fotos-del-producto", nombre: "Fotos del producto", ambito: "comun", orden: 2 },
+  { slug: "logotipos", nombre: "Logotipos", ambito: "comun", orden: 3 },
+  { slug: "videos-de-presentacion", nombre: "Vídeos de presentación", ambito: "comun", orden: 4 },
+  { slug: "material-plv", nombre: "Material PLV", ambito: "comun", orden: 5 },
+  { slug: "lista-de-precios", nombre: "Lista de precios", ambito: "cliente", orden: 10 },
+  { slug: "contrato", nombre: "Contrato", ambito: "cliente", orden: 11 },
+  { slug: "business-plan", nombre: "Business Plan", ambito: "cliente", orden: 12 },
+  { slug: "forecast", nombre: "Forecast", ambito: "cliente", orden: 13 },
 ];
 
+const titulo = (archivo: string) => archivo.replace(/\.[a-z]+$/i, "");
+
+/** Material común de Sergio Tacchini (Comun/Sergio Tacchini/...). */
 const st = (categoria: string, archivo: string, tamanoBytes: number, mime: string, fecha: string): Material => ({
   id: `st-${archivo}`,
   marcaId: "m-st",
+  distribuidorId: null,
   categoria,
-  titulo: archivo.replace(/\.[a-z]+$/i, ""),
-  rutaArchivo: `sergio-tacchini/${categoria}/${archivo}`,
+  titulo: titulo(archivo),
+  rutaArchivo: `comun/sergio-tacchini/${categoria}/${archivo}`,
+  mime,
+  tamanoBytes,
+  publicadoEn: fecha,
+});
+
+/** Material de la carpeta de un cliente (Clientes/<Cliente>/...). */
+const cliente = (distribuidorId: string, categoria: string, archivo: string, tamanoBytes: number, mime: string, fecha: string): Material => ({
+  id: `${distribuidorId}-${archivo}`,
+  marcaId: "m-st",
+  distribuidorId,
+  categoria,
+  titulo: titulo(archivo),
+  rutaArchivo: `clientes/${distribuidorId}/${categoria}/${archivo}`,
   mime,
   tamanoBytes,
   publicadoEn: fecha,
@@ -41,9 +59,10 @@ export const materiales: Material[] = [
   st("presentacion", "Tacchini Ocean Club-Splendida-sm.pdf", 3495816, PDF, "2025-11-22"),
   st("presentacion", "Tacchini Club-Your Match-sm.pdf", 1877952, PDF, "2025-11-22"),
   st("presentacion", "Tacchini Pacific Blue-Pure Black-sm.pdf", 1483761, PDF, "2025-11-22"),
-  st("lista-de-precios", "Export Price List EU 2026_ST 26-11-16.xlsx", 5262982, XLSX, "2026-11-16"),
-  st("lista-de-precios", "Order Form EU_ST.xlsx", 5204783, XLSX, "2026-09-04"),
-  st("lista-de-precios", "Export Price List RU 2026_ST.xlsx", 5197364, XLSX, "2026-07-24"),
+  // Reparto de ejemplo de las tarifas: cada cliente ve solo la suya.
+  cliente("d1", "lista-de-precios", "Export Price List EU 2026_ST 26-11-16.xlsx", 5262982, XLSX, "2026-11-16"),
+  cliente("d1", "lista-de-precios", "Order Form EU_ST.xlsx", 5204783, XLSX, "2026-09-04"),
+  cliente("d2", "lista-de-precios", "Export Price List RU 2026_ST.xlsx", 5197364, XLSX, "2026-07-24"),
 ];
 
 interface UsuarioDemo {

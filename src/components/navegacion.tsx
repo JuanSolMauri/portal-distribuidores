@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 export const PESTANAS = [
   { href: "/inicio", nombre: "Inicio" },
   { href: "/marketing", nombre: "Marketing" },
+  { href: "/mis-documentos", nombre: "Mis documentos" },
   { href: "/business-plan", nombre: "Business Plan" },
   { href: "/pedidos", nombre: "Pedidos" },
   { href: "/contrato", nombre: "Contrato" },

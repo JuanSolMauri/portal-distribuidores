@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { modoDemo } from "@/lib/config";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import type { Categoria, Contexto, Marca, Material, Rol } from "@/lib/types";
+import { esInterno, type Ambito, type Categoria, type Contexto, type Marca, type Material, type Rol } from "@/lib/types";
 import * as demo from "./demo";
 
 export const COOKIE_DEMO = "demo_usuario";
@@ -37,15 +37,34 @@ export async function obtenerContexto(): Promise<Contexto | null> {
   };
 }
 
-export async function listarCategorias(): Promise<Categoria[]> {
-  if (modoDemo) return demo.categorias;
-  const supabase = await crearClienteServidor();
-  const { data } = await supabase.from("categorias_marketing").select("slug, nombre, orden").order("orden");
-  return (data ?? []) as Categoria[];
+export async function listarCategorias(ambito?: Ambito): Promise<Categoria[]> {
+  let lista: Categoria[];
+  if (modoDemo) {
+    lista = demo.categorias;
+  } else {
+    const supabase = await crearClienteServidor();
+    const { data } = await supabase.from("categorias_marketing").select("slug, nombre, ambito, orden").order("orden");
+    lista = (data ?? []) as Categoria[];
+  }
+  return ambito ? lista.filter((c) => c.ambito === ambito) : lista;
 }
 
-export async function listarMateriales(ctx: Contexto, filtro: { marca?: string; categoria?: string } = {}): Promise<Material[]> {
-  const permitidas = new Set(ctx.marcas.map((m) => m.id));
+/** Misma regla que puede_ver_material() en la base de datos, como segunda barrera. */
+function puedeVer(ctx: Contexto, m: Material): boolean {
+  if (esInterno(ctx.usuario.rol)) return true;
+  const permitidas = new Set(ctx.marcas.map((x) => x.id));
+  if (m.distribuidorId == null) return m.marcaId != null && permitidas.has(m.marcaId);
+  return m.distribuidorId === ctx.distribuidor?.id && (m.marcaId == null || permitidas.has(m.marcaId));
+}
+
+interface Filtro {
+  /** comun = carpetas comunes por marca; cliente = la carpeta propia del cliente. */
+  ambito?: Ambito;
+  marca?: string;
+  categoria?: string;
+}
+
+export async function listarMateriales(ctx: Contexto, filtro: Filtro = {}): Promise<Material[]> {
   const marcaId = filtro.marca ? ctx.marcas.find((m) => m.slug === filtro.marca)?.id : undefined;
   if (filtro.marca && !marcaId) return []; // marca no autorizada o inexistente
 
@@ -56,14 +75,17 @@ export async function listarMateriales(ctx: Contexto, filtro: { marca?: string; 
     const supabase = await crearClienteServidor();
     let consulta = supabase
       .from("materiales")
-      .select("id, marca_id, categoria, titulo, ruta_archivo, mime, tamano_bytes, publicado_en")
+      .select("id, marca_id, distribuidor_id, categoria, titulo, ruta_archivo, mime, tamano_bytes, publicado_en")
       .order("publicado_en", { ascending: false });
+    if (filtro.ambito === "comun") consulta = consulta.is("distribuidor_id", null);
+    if (filtro.ambito === "cliente") consulta = consulta.not("distribuidor_id", "is", null);
     if (marcaId) consulta = consulta.eq("marca_id", marcaId);
     if (filtro.categoria) consulta = consulta.eq("categoria", filtro.categoria);
     const { data } = await consulta;
     lista = (data ?? []).map((r) => ({
       id: r.id,
       marcaId: r.marca_id,
+      distribuidorId: r.distribuidor_id,
       categoria: r.categoria,
       titulo: r.titulo,
       rutaArchivo: r.ruta_archivo,
@@ -73,9 +95,10 @@ export async function listarMateriales(ctx: Contexto, filtro: { marca?: string; 
     }));
   }
 
-  // Segunda barrera además de RLS: nunca mostrar una marca no autorizada.
   return lista
-    .filter((m) => permitidas.has(m.marcaId))
+    .filter((m) => puedeVer(ctx, m))
+    .filter((m) => filtro.ambito !== "comun" || m.distribuidorId == null)
+    .filter((m) => filtro.ambito !== "cliente" || m.distribuidorId != null)
     .filter((m) => !marcaId || m.marcaId === marcaId)
     .filter((m) => !filtro.categoria || m.categoria === filtro.categoria)
     .sort((a, b) => b.publicadoEn.localeCompare(a.publicadoEn));

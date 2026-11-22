@@ -60,29 +60,41 @@ create table public.perfiles (
   )
 );
 
--- Categorías de la pestaña Marketing (las carpetas de cada marca en Drive).
+-- Categorías de material. Reflejan las carpetas de Drive "Internacional":
+--   comun    -> Comun/<Marca>/<Categoría>: lo ven todos los clientes con esa marca.
+--   cliente  -> Clientes/<Cliente>/<Categoría>: solo lo ve ese cliente.
 create table public.categorias_marketing (
   slug text primary key check (slug ~ '^[a-z0-9-]+$'),
   nombre text not null,
+  ambito text not null default 'comun' check (ambito in ('comun', 'cliente')),
   orden int not null default 0
 );
 
 create table public.materiales (
   id uuid primary key default gen_random_uuid(),
-  marca_id uuid not null references public.marcas(id) on delete cascade,
+  -- Material común: marca obligatoria, sin distribuidor.
+  -- Material de cliente: distribuidor obligatorio; la marca es opcional (un contrato puede cubrir varias).
+  marca_id uuid references public.marcas(id) on delete cascade,
+  distribuidor_id uuid references public.distribuidores(id) on delete cascade,
   categoria text not null references public.categorias_marketing(slug),
   titulo text not null,
-  -- Ruta en el bucket "marketing": <slug-marca>/<slug-categoria>/<archivo>
+  -- Ruta en el bucket "marketing":
+  --   comun/<slug-marca>/<slug-categoria>/<archivo>
+  --   clientes/<id-distribuidor>/<slug-categoria>/<archivo>
   ruta_archivo text not null unique,
   mime text,
   tamano_bytes bigint,
   idioma text,
   publicado boolean not null default true,
   publicado_en timestamptz not null default now(),
-  constraint ruta_empieza_por_marca check (ruta_archivo like '%/%/%')
+  constraint comun_o_cliente check (
+    (distribuidor_id is null and marca_id is not null and ruta_archivo like 'comun/%/%/%')
+    or (distribuidor_id is not null and ruta_archivo like 'clientes/' || distribuidor_id::text || '/%/%')
+  )
 );
 
 create index materiales_marca_categoria on public.materiales (marca_id, categoria);
+create index materiales_distribuidor on public.materiales (distribuidor_id);
 
 create table public.descargas (
   id bigint generated always as identity primary key,
@@ -129,6 +141,21 @@ create or replace function public.puede_ver_marca(p_marca uuid)
 returns boolean
 language sql stable security definer set search_path = public
 as $$ select public.es_interno() or p_marca in (select public.mis_marcas()) $$;
+
+-- Regla única para materiales y sus archivos.
+create or replace function public.puede_ver_material(p_marca uuid, p_distribuidor uuid, p_publicado boolean)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select public.es_interno() or (
+    p_publicado
+    and case
+      when p_distribuidor is null then p_marca in (select public.mis_marcas())
+      else p_distribuidor = public.mi_distribuidor()
+           and (p_marca is null or p_marca in (select public.mis_marcas()))
+    end
+  )
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security
@@ -179,9 +206,9 @@ create policy categorias_gestion on public.categorias_marketing for all
   using (public.mi_rol() in ('admin', 'marketing'))
   with check (public.mi_rol() in ('admin', 'marketing'));
 
--- Materiales: el distribuidor solo ve los publicados de sus marcas.
+-- Materiales: comunes de sus marcas + los de su propia carpeta de cliente.
 create policy materiales_leer on public.materiales for select
-  using (public.es_interno() or (publicado and marca_id in (select public.mis_marcas())));
+  using (public.puede_ver_material(marca_id, distribuidor_id, publicado));
 create policy materiales_gestion on public.materiales for all
   using (public.mi_rol() in ('admin', 'marketing'))
   with check (public.mi_rol() in ('admin', 'marketing'));
@@ -207,7 +234,7 @@ create policy marketing_leer on storage.objects for select
     and exists (
       select 1 from public.materiales m
       where m.ruta_archivo = storage.objects.name
-        and (public.es_interno() or (m.publicado and m.marca_id in (select public.mis_marcas())))
+        and public.puede_ver_material(m.marca_id, m.distribuidor_id, m.publicado)
     )
   );
 

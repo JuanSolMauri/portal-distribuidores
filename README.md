@@ -2,7 +2,20 @@
 
 Portal web privado para los distribuidores internacionales. Cada distribuidor entra con su usuario y solo ve las marcas que tiene autorizadas.
 
-Pestañas: Inicio, Marketing, Business Plan, Pedidos, Contrato, Documentación y Contacto.
+Pestañas: Inicio, Marketing, Mis documentos, Business Plan, Pedidos, Contrato, Documentación y Contacto.
+
+## Carpetas
+
+Igual que la carpeta "Internacional" de Drive:
+
+```
+Internacional/
+├── Comun/<Marca>/<Categoría>     → Marketing: lo ven todos los clientes con esa marca
+└── Clientes/<Cliente>/<Categoría> → Mis documentos: solo lo ve ese cliente
+```
+
+- Categorías comunes: Presentación, Fotos del producto, Logotipos, Vídeos de presentación, Material PLV.
+- Categorías de cliente: Lista de precios, Contrato, Business Plan, Forecast.
 
 ## Estado
 
@@ -10,7 +23,7 @@ Pestañas: Inicio, Marketing, Business Plan, Pedidos, Contrato, Documentación y
 | --- | --- |
 | Base de la web, diseño y pestañas | Hecho |
 | Base de datos con permisos por marca (Supabase, RLS) | Hecho |
-| Inicio y Marketing (filtros por marca y tipo, descargas con enlace temporal) | Hecho |
+| Inicio, Marketing (común por marca) y Mis documentos (carpeta del cliente) | Hecho |
 | Business Plan, Pedidos, Contrato, Documentación, Contacto | Próximamente |
 | Carga de materiales desde Google Drive | Próximamente |
 
@@ -35,4 +48,5 @@ Abre http://localhost:3000. Sin variables de entorno arranca en **modo demo**: s
 - Roles internos: `admin`, `gestor`, `marketing`. Roles del distribuidor: `dist_admin`, `dist_usuario`.
 - `distribuidor_marca` dice qué marcas lleva cada distribuidor, con fechas de vigencia.
 - Las políticas RLS de la base de datos filtran marcas, materiales y archivos: aunque la web tuviera un fallo, la base de datos no devuelve datos de otra marca.
-- Los archivos están en un bucket privado (`marketing`, ruta `<marca>/<categoría>/<archivo>`) y se descargan con enlaces que caducan en 5 minutos.
+- Un material de la carpeta de un cliente (`distribuidor_id` relleno) solo lo ve ese cliente. Un material común lo ven los clientes que tienen su marca.
+- Los archivos están en un bucket privado (`marketing`, rutas `comun/<marca>/<categoría>/<archivo>` y `clientes/<id-cliente>/<categoría>/<archivo>`) y se descargan con enlaces que caducan en 5 minutos.

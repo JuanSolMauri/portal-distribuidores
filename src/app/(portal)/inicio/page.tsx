@@ -5,11 +5,12 @@ import { listarCategorias, listarMateriales, obtenerContexto } from "@/lib/data"
 export default async function Inicio() {
   const ctx = await obtenerContexto();
   if (!ctx) redirect("/login");
-  const [categorias, materiales] = await Promise.all([listarCategorias(), listarMateriales(ctx)]);
+  const [categorias, materiales] = await Promise.all([listarCategorias(), listarMateriales(ctx, { ambito: "comun" })]);
   const nombreCategoria = new Map(categorias.map((c) => [c.slug, c.nombre]));
   const nombreMarca = new Map(ctx.marcas.map((m) => [m.id, m.nombre]));
   const recientes = materiales.slice(0, 5);
   const primerNombre = ctx.usuario.nombre.split(" ")[0];
+  const propios = (await listarMateriales(ctx, { ambito: "cliente" })).length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -28,8 +29,14 @@ export default async function Inicio() {
         })}
       </div>
 
+      <Link href="/mis-documentos" className="flex flex-col gap-1.5 rounded-xl border border-borde bg-white p-4.5 text-tinta no-underline hover:border-acento">
+        <span className="text-xs text-suave">Solo para ti</span>
+        <span className="text-lg font-semibold">Mis documentos</span>
+        <span className="text-xs text-suave">{propios === 1 ? "1 documento" : `${propios} documentos`}: lista de precios, contrato, Business Plan y Forecast</span>
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-xl border border-borde bg-white p-4.5">
-        <h2 className="text-base font-semibold">Últimos materiales</h2>
+        <h2 className="text-base font-semibold">Últimos materiales de marketing</h2>
         {recientes.length === 0 ? (
           <p className="text-suave">Aún no hay materiales publicados.</p>
         ) : (
@@ -39,7 +46,7 @@ export default async function Inicio() {
                 <span className="w-20 text-xs text-suave">{new Date(m.publicadoEn).toLocaleDateString("es-ES")}</span>
                 <span className="min-w-0 flex-1 break-words">{m.titulo}</span>
                 <span className="text-xs text-suave">
-                  {nombreMarca.get(m.marcaId)} · {nombreCategoria.get(m.categoria) ?? m.categoria}
+                  {m.marcaId ? `${nombreMarca.get(m.marcaId)} · ` : ""}{nombreCategoria.get(m.categoria) ?? m.categoria}
                 </span>
               </li>
             ))}
