@@ -119,6 +119,46 @@ export async function listarMateriales(ctx: Contexto, filtro: Filtro = {}): Prom
     .sort((a, b) => b.publicadoEn.localeCompare(a.publicadoEn));
 }
 
+export type ResultadoVer =
+  | { material: Material; url: string | null }
+  | { error: "no-encontrado" | "fallo" };
+
+/**
+ * Para ver un archivo dentro del portal: el material y un enlace sin descarga forzada.
+ * Dura 1 hora para que un vídeo largo no se corte. RLS decide si el usuario puede.
+ * En modo demo no hay archivo: url = null.
+ */
+export async function enlaceVer(ctx: Contexto, materialId: string): Promise<ResultadoVer> {
+  if (modoDemo) {
+    const material = (await listarMateriales(ctx)).find((m) => m.id === materialId);
+    return material ? { material, url: null } : { error: "no-encontrado" };
+  }
+
+  const supabase = await crearClienteServidor();
+  const { data: r } = await supabase
+    .from("materiales")
+    .select("id, marca_id, distribuidor_id, categoria, titulo, ruta_archivo, mime, tamano_bytes, publicado_en")
+    .eq("id", materialId)
+    .maybeSingle();
+  if (!r) return { error: "no-encontrado" };
+  const material: Material = {
+    id: r.id,
+    marcaId: r.marca_id,
+    distribuidorId: r.distribuidor_id,
+    categoria: r.categoria,
+    titulo: r.titulo,
+    rutaArchivo: r.ruta_archivo,
+    mime: r.mime,
+    tamanoBytes: r.tamano_bytes,
+    publicadoEn: r.publicado_en,
+  };
+  if (!puedeVer(ctx, material)) return { error: "no-encontrado" };
+
+  const { data, error } = await supabase.storage.from("marketing").createSignedUrl(material.rutaArchivo, 3600);
+  if (error || !data) return { error: "fallo" };
+  return { material, url: data.signedUrl };
+}
+
 export type ResultadoDescarga = { url: string } | { error: "no-encontrado" | "demo" | "fallo" };
 
 /** Genera un enlace de descarga que caduca en 5 minutos. RLS decide si el usuario puede. */
