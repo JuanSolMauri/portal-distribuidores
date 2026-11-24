@@ -39,7 +39,7 @@ Abre http://localhost:3000. Sin variables de entorno arranca en **modo demo**: s
 ## Conectarlo a Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com) (región UE).
-2. En el editor SQL ejecuta `supabase/migrations/0001_esquema_base.sql` y después `supabase/seed.sql`.
+2. En el editor SQL ejecuta, en orden, los archivos de `supabase/migrations/` y después `supabase/seed.sql`.
 3. Copia `.env.example` a `.env.local` y rellena la URL y la clave `anon` del proyecto.
 4. Crea los usuarios en Authentication y su fila en `perfiles` con el rol y el distribuidor.
 

@@ -3,13 +3,18 @@ import { redirect } from "next/navigation";
 import { salir } from "@/app/acciones";
 import { BarraDemo } from "@/components/barra-demo";
 import { Navegacion } from "@/components/navegacion";
-import { COOKIE_DEMO, obtenerContexto } from "@/lib/data";
+import { COOKIE_DEMO, obtenerAcceso } from "@/lib/data";
 import { usuarioDemoPorDefecto, usuariosDemo } from "@/lib/data/demo";
 import { esInterno } from "@/lib/types";
 
 export default async function LayoutPortal({ children }: { children: React.ReactNode }) {
-  const ctx = await obtenerContexto();
-  if (!ctx) redirect("/login");
+  const acceso = await obtenerAcceso();
+  if (!("ctx" in acceso)) {
+    const q = new URLSearchParams({ motivo: acceso.motivo });
+    if (acceso.detalle) q.set("detalle", acceso.detalle.slice(0, 200));
+    redirect(acceso.motivo === "sin-sesion" ? "/login" : `/login?${q}`);
+  }
+  const { ctx } = acceso;
   const claveDemo = (await cookies()).get(COOKIE_DEMO)?.value ?? usuarioDemoPorDefecto;
 
   return (
