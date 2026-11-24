@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listarCategorias, listarMateriales } from "@/lib/data";
-import { formatoTamano, tipoArchivo } from "@/lib/formato";
+import { formatoTamano, tipoArchivo, tipoVista } from "@/lib/formato";
 import type { Ambito, Contexto } from "@/lib/types";
 
 interface Props {
@@ -94,15 +94,25 @@ export async function Biblioteca({ ctx, ambito, ruta, titulo, descripcion, marca
                 <span className="text-xs text-suave">
                   {formatoTamano(m.tamanoBytes)} · {new Date(m.publicadoEn).toLocaleDateString("es-ES")}
                 </span>
+                <div className="mt-3 flex gap-2">
+                {tipoVista(m.mime, m.rutaArchivo) && (
+                  <Link
+                    href={`/ver/${encodeURIComponent(m.id)}?volver=${encodeURIComponent(ruta)}`}
+                    className="flex min-h-10 flex-1 items-center justify-center rounded-lg border border-acento font-semibold no-underline"
+                  >
+                    Ver
+                  </Link>
+                )}
                 <a
                   href={`/api/descargar/${encodeURIComponent(m.id)}?volver=${encodeURIComponent(ruta)}`}
-                  className="mt-3 flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-acento font-semibold text-white no-underline hover:bg-acento-oscuro hover:text-white"
+                  className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-acento font-semibold text-white no-underline hover:bg-acento-oscuro hover:text-white"
                 >
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M4 20h16" />
                   </svg>
                   Descargar
                 </a>
+                </div>
               </div>
             </li>
           ))}

@@ -48,7 +48,7 @@ export default async function AdminArchivos({ searchParams }: { searchParams: Pa
                 {materiales.map((m) => (
                   <tr key={m.id} className="border-b border-borde last:border-0">
                     <td className="p-3 break-all">
-                      <a href={`/api/descargar/${encodeURIComponent(m.id)}?volver=/admin/archivos`}>{m.titulo}</a>
+                      <a href={`/ver/${encodeURIComponent(m.id)}?volver=/admin/archivos`}>{m.titulo}</a>
                     </td>
                     <td className="p-3">
                       {m.distribuidorId
