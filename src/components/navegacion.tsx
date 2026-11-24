@@ -14,11 +14,12 @@ export const PESTANAS = [
   { href: "/contacto", nombre: "Contacto" },
 ] as const;
 
-export function Navegacion() {
+export function Navegacion({ interno }: { interno: boolean }) {
   const ruta = usePathname();
+  const pestanas = interno ? [...PESTANAS, { href: "/admin", nombre: "Administración" }] : PESTANAS;
   return (
     <nav aria-label="Secciones" className="flex gap-1 overflow-x-auto md:flex-col">
-      {PESTANAS.map((p) => {
+      {pestanas.map((p) => {
         const activa = ruta === p.href || ruta.startsWith(`${p.href}/`);
         return (
           <Link

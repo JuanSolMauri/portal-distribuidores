@@ -9,6 +9,7 @@ import type { Categoria, Contexto, Distribuidor, Marca, Material, Usuario } from
 export const marcas: Marca[] = [
   { id: "m-st", slug: "sergio-tacchini", nombre: "Sergio Tacchini" },
   { id: "m-hoh", slug: "house-of-helios", nombre: "House of Helios" },
+  { id: "m-olevi", slug: "olevi", nombre: "Olevi" },
 ];
 
 export const categorias: Categoria[] = [

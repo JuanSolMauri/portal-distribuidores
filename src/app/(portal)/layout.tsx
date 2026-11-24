@@ -59,7 +59,7 @@ export default async function LayoutPortal({ children }: { children: React.React
 
       <div className="mx-auto flex max-w-[1360px] flex-col gap-6 p-4 md:flex-row md:p-6">
         <aside className="md:w-56 md:shrink-0">
-          <Navegacion />
+          <Navegacion interno={esInterno(ctx.usuario.rol)} />
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
