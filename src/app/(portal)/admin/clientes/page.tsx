@@ -3,7 +3,7 @@ import { Mensaje } from "@/components/mensaje";
 import { obtenerContexto } from "@/lib/data";
 import { listarClientes, listarUsuarios } from "@/lib/data/admin";
 import type { Marca, Rol } from "@/lib/types";
-import { actualizarCliente, crearCliente, darAcceso } from "../acciones";
+import { actualizarCliente, borrarCliente, crearCliente, darAcceso, quitarAcceso } from "../acciones";
 
 type Params = Promise<{ ok?: string; error?: string }>;
 
@@ -17,6 +17,24 @@ const NOMBRE_ROL: Record<Rol, string> = {
   dist_admin: "Cliente: responsable",
   dist_usuario: "Cliente: equipo",
 };
+
+/** Botón de borrar con un segundo paso de confirmación, sin diálogos del navegador. */
+function Confirmar({ accion, id, texto, aviso, demo }: { accion: (f: FormData) => Promise<void>; id: string; texto: string; aviso: string; demo: boolean }) {
+  return (
+    <details className="text-left">
+      <summary className="inline-flex min-h-9 cursor-pointer list-none items-center rounded-md border border-red-200 px-3 text-sm text-red-800 hover:bg-red-50">
+        {texto}
+      </summary>
+      <form action={accion} className="mt-2 flex flex-col items-start gap-1">
+        <input type="hidden" name="id" value={id} />
+        <span className="text-xs text-suave">{aviso}</span>
+        <button disabled={demo} className="min-h-9 rounded-md bg-red-700 px-3 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-50">
+          Sí, {texto.toLowerCase()}
+        </button>
+      </form>
+    </details>
+  );
+}
 
 function CasillasMarcas({ marcas, marcadas }: { marcas: Marca[]; marcadas: string[] }) {
   return (
@@ -51,7 +69,8 @@ export default async function AdminClientes({ searchParams }: { searchParams: Pa
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Clientes ({clientes.length})</h2>
         {clientes.map((c) => (
-          <form key={c.id} action={actualizarCliente} className="flex flex-col gap-4 rounded-xl border border-borde bg-white p-5">
+          <div key={c.id} className="flex flex-col gap-3 rounded-xl border border-borde bg-white p-5">
+          <form action={actualizarCliente} className="flex flex-col gap-4">
             <input type="hidden" name="id" value={c.id} />
             <div className="grid gap-4 sm:grid-cols-[2fr_1fr_auto]">
               <label className="flex flex-col gap-1.5 text-sm text-suave">
@@ -70,6 +89,14 @@ export default async function AdminClientes({ searchParams }: { searchParams: Pa
             <CasillasMarcas marcas={ctx.marcas} marcadas={c.marcaIds} />
             <button disabled={demo} className={`${boton} sm:self-start`}>Guardar</button>
           </form>
+          <Confirmar
+            accion={borrarCliente}
+            id={c.id}
+            texto="Borrar cliente"
+            aviso="Se borran el cliente, sus marcas y los archivos de su carpeta privada. No se puede deshacer."
+            demo={demo}
+          />
+          </div>
         ))}
 
         <form action={crearCliente} className="flex flex-col gap-4 rounded-xl border border-dashed border-[#c5ced8] bg-white p-5">
@@ -103,6 +130,7 @@ export default async function AdminClientes({ searchParams }: { searchParams: Pa
                   <th className="p-3 font-medium">Email</th>
                   <th className="p-3 font-medium">Tipo</th>
                   <th className="p-3 font-medium">Cliente</th>
+                  <th className="p-3"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -112,6 +140,11 @@ export default async function AdminClientes({ searchParams }: { searchParams: Pa
                     <td className="p-3 break-all">{u.email}</td>
                     <td className="p-3">{NOMBRE_ROL[u.rol]}</td>
                     <td className="p-3">{u.distribuidorId ? nombreCliente.get(u.distribuidorId) ?? "?" : "—"}</td>
+                    <td className="p-3">
+                      {u.id !== ctx.usuario.id && (
+                        <Confirmar accion={quitarAcceso} id={u.id} texto="Quitar acceso" aviso="Ya no podrá ver nada del portal." demo={demo} />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
