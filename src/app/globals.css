@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-tinta: #1b2430;
+  --color-suave: #4f5d6b;
+  --color-borde: #dde3e9;
+  --color-fondo: #f4f6f8;
+  --color-marino: #12263a;
+  --color-acento: #0b5563;
+  --color-acento-oscuro: #083f49;
+  --color-acento-claro: #dceff2;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-fondo);
+    color: var(--color-tinta);
+  }
+
+  a {
+    color: var(--color-acento);
+  }
+  a:hover {
+    color: var(--color-acento-oscuro);
+  }
+}
