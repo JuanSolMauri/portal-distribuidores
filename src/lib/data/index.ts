@@ -7,34 +7,49 @@ import * as demo from "./demo";
 
 export const COOKIE_DEMO = "demo_usuario";
 
-/** Devuelve el usuario que ha entrado y sus marcas, o null si no hay sesión. */
-export async function obtenerContexto(): Promise<Contexto | null> {
+export type MotivoSinAcceso = "sin-sesion" | "sin-perfil" | "error";
+
+/** Devuelve el usuario que ha entrado y sus marcas, o el motivo por el que no puede entrar. */
+export async function obtenerAcceso(): Promise<{ ctx: Contexto } | { motivo: MotivoSinAcceso; detalle?: string }> {
   if (modoDemo) {
     const almacen = await cookies();
-    return demo.contextoDemo(almacen.get(COOKIE_DEMO)?.value);
+    return { ctx: demo.contextoDemo(almacen.get(COOKIE_DEMO)?.value) };
   }
 
   const supabase = await crearClienteServidor();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return null;
+  if (!auth.user) return { motivo: "sin-sesion" };
 
-  const { data: perfil } = await supabase
+  const { data: perfil, error } = await supabase
     .from("perfiles")
     .select("id, nombre, rol, distribuidores(id, nombre, pais)")
     .eq("id", auth.user.id)
-    .single();
-  if (!perfil) return null;
+    .maybeSingle();
+  if (error) {
+    console.error("[acceso] error leyendo perfil", error);
+    return { motivo: "error", detalle: `${error.code ?? ""} ${error.message}`.trim() };
+  }
+  if (!perfil) return { motivo: "sin-perfil", detalle: auth.user.email ?? undefined };
 
   // RLS ya devuelve solo las marcas que este usuario puede ver.
-  const { data: marcas } = await supabase.from("marcas").select("id, slug, nombre").order("nombre");
+  const { data: marcas, error: errorMarcas } = await supabase.from("marcas").select("id, slug, nombre").order("nombre");
+  if (errorMarcas) console.error("[acceso] error leyendo marcas", errorMarcas);
 
   const dist = perfil.distribuidores as unknown as { id: string; nombre: string; pais: string } | null;
   return {
-    modo: "supabase",
-    usuario: { id: perfil.id, nombre: perfil.nombre, rol: perfil.rol as Rol },
-    distribuidor: dist,
-    marcas: (marcas ?? []) as Marca[],
+    ctx: {
+      modo: "supabase",
+      usuario: { id: perfil.id, nombre: perfil.nombre, rol: perfil.rol as Rol },
+      distribuidor: dist,
+      marcas: (marcas ?? []) as Marca[],
+    },
   };
+}
+
+/** Atajo para páginas: el contexto, o null si no hay acceso. */
+export async function obtenerContexto(): Promise<Contexto | null> {
+  const r = await obtenerAcceso();
+  return "ctx" in r ? r.ctx : null;
 }
 
 export async function listarCategorias(ambito?: Ambito): Promise<Categoria[]> {
