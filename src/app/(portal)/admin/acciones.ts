@@ -121,3 +121,42 @@ export async function darAcceso(form: FormData) {
   revalidatePath("/", "layout");
   volver(ruta, "ok", `Acceso dado a ${email}`);
 }
+
+/** Borra un cliente, sus marcas y sus archivos privados. No deja si aún tiene personas con acceso. */
+export async function borrarCliente(form: FormData) {
+  const ruta = "/admin/clientes";
+  const supabase = await exigirInterno(ruta);
+  const id = texto(form, "id");
+  const { data: cliente } = await supabase.from("distribuidores").select("id, nombre").eq("id", id).maybeSingle();
+  if (!cliente) volver(ruta, "error", "Ese cliente ya no existe.");
+
+  const { count } = await supabase.from("perfiles").select("id", { count: "exact", head: true }).eq("distribuidor_id", id);
+  if (count) volver(ruta, "error", `${cliente.nombre} todavía tiene ${count} persona(s) con acceso. Quítales el acceso primero.`);
+
+  const { data: archivos } = await supabase.from("materiales").select("ruta_archivo").eq("distribuidor_id", id);
+  if (archivos?.length) {
+    const { error } = await supabase.storage.from("marketing").remove(archivos.map((a) => a.ruta_archivo));
+    if (error) volver(ruta, "error", `No se pudieron borrar sus archivos: ${error.message}`);
+  }
+  const { error } = await supabase.from("distribuidores").delete().eq("id", id);
+  if (error) volver(ruta, "error", `No se pudo borrar el cliente: ${error.message}`);
+
+  revalidatePath("/", "layout");
+  volver(ruta, "ok", `Cliente borrado: ${cliente.nombre}`);
+}
+
+/** Quita el acceso al portal (borra su perfil). El usuario de Supabase sigue existiendo, pero no ve nada. */
+export async function quitarAcceso(form: FormData) {
+  const ruta = "/admin/clientes";
+  const supabase = await exigirInterno(ruta);
+  const id = texto(form, "id");
+  const ctx = await obtenerContexto();
+  if (ctx?.usuario.id === id) volver(ruta, "error", "No puedes quitarte el acceso a ti mismo.");
+
+  const { data, error } = await supabase.from("perfiles").delete().eq("id", id).select("nombre");
+  if (error) volver(ruta, "error", `No se pudo quitar el acceso: ${error.message}`);
+  if (!data?.length) volver(ruta, "error", "No se pudo quitar el acceso: solo un administrador puede hacerlo.");
+
+  revalidatePath("/", "layout");
+  volver(ruta, "ok", `Acceso quitado a ${data[0].nombre}`);
+}
