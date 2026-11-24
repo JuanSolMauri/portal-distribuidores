@@ -2,7 +2,8 @@
 
 insert into public.marcas (slug, nombre) values
   ('sergio-tacchini', 'Sergio Tacchini'),
-  ('house-of-helios', 'House of Helios')
+  ('house-of-helios', 'House of Helios'),
+  ('olevi', 'Olevi')
 on conflict (slug) do nothing;
 
 insert into public.categorias_marketing (slug, nombre, ambito, orden) values

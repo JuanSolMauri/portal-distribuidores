@@ -41,7 +41,10 @@ Abre http://localhost:3000. Sin variables de entorno arranca en **modo demo**: s
 1. Crea un proyecto en [supabase.com](https://supabase.com) (región UE).
 2. En el editor SQL ejecuta, en orden, los archivos de `supabase/migrations/` y después `supabase/seed.sql`.
 3. Copia `.env.example` a `.env.local` y rellena la URL y la clave `anon` del proyecto.
-4. Crea los usuarios en Authentication y su fila en `perfiles` con el rol y el distribuidor.
+4. Crea el primer usuario administrador en Authentication y su fila en `perfiles` con rol `admin`.
+5. A partir de ahí, todo se hace desde la pestaña **Administración** del portal (solo la ve el equipo interno):
+   - **Archivos:** subir archivos a una carpeta común de marca o a la carpeta privada de un cliente, y borrarlos. Se suben directamente del navegador a Supabase (máximo 50 MB por archivo en el plan gratuito).
+   - **Clientes y usuarios:** crear clientes, elegir sus marcas y dar acceso a personas. El usuario se crea antes en Supabase (Authentication → Users → Add user) y después se le asigna cliente y tipo con «Dar acceso».
 
 ## Cómo funcionan los permisos
 
